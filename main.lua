@@ -1,22 +1,61 @@
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local rootPart = character:WaitForChild("HumanoidRootPart")
 
--- UI Elements (Adjust paths to match your actual hierarchy)
-local gui = script.Parent
-local toggleBtn = gui:WaitForChild("ToggleBttn")
-local sliderBar = gui:WaitForChild("SliderBar")
-local sliderHandle = sliderBar:WaitForChild("SliderHandle")
+-- Watch for character respawns to update the variables
+player.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    rootPart = newChar:WaitForChild("HumanoidRootPart")
+end)
 
+-- Create a quick floating UI dynamically if you don't have one pre-built
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+screenGui.Name = "ChestFarmUI"
+screenGui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0, 220, 0, 140)
+frame.Position = UDim2.new(0.05, 0, 0.4, 0)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 2
+
+local toggleBtn = Instance.new("TextButton", frame)
+toggleBtn.Size = UDim2.new(0, 200, 0, 40)
+toggleBtn.Position = UDim2.new(0, 10, 0, 10)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+toggleBtn.Text = "Chest Farm: OFF"
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.TextSize = 16
+
+local speedLabel = Instance.new("TextLabel", frame)
+speedLabel.Size = UDim2.new(0, 200, 0, 20)
+speedLabel.Position = UDim2.new(0, 10, 0, 60)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Text = "Tween Speed: 150"
+speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+local sliderBar = Instance.new("Frame", frame)
+sliderBar.Size = UDim2.new(0, 200, 0, 15)
+sliderBar.Position = UDim2.new(0, 10, 0, 90)
+sliderBar.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+
+local sliderHandle = Instance.new("TextButton", sliderBar)
+sliderHandle.Size = UDim2.new(0, 20, 0, 25)
+sliderHandle.Position = UDim2.new(0.33, -10, -0.3, 0) -- Starts at 150 speed
+sliderHandle.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
+sliderHandle.Text = ""
+
+-- Configuration states
 local toggled = false
-local tweenSpeed = 150 -- default speed units (studs per second)
+local tweenSpeed = 150 
 local currentTween = nil
 
--- Simple Slider Logic
+-- Slider Functionality
 local dragging = false
 sliderHandle.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -30,74 +69,106 @@ game:GetService("UserInputService").InputEnded:Connect(function(input)
     end
 end)
 
-game:GetService("RunService").RenderStepped:Connect(function()
+RunService.RenderStepped:Connect(function()
+    -- Noclip Loop: Disables body collisions when farming is running
+    if toggled and character then
+        for _, part in ipairs(character:GetDescendants()) do
+            if part:IsA("BasePart") and part.CanCollide then
+                part.CanCollide = false
+            end
+        end
+    end
+
+    -- Slider math
     if dragging then
         local mouse = player:GetMouse()
         local relX = math.clamp((mouse.X - sliderBar.AbsolutePosition.X) / sliderBar.AbsoluteSize.X, 0, 1)
         sliderHandle.Position = UDim2.new(relX, -10, sliderHandle.Position.Y.Scale, sliderHandle.Position.Y.Offset)
-        -- Map relX (0 to 1) to speed range, e.g., 50 to 350 studs/sec
-        tweenSpeed = 50 + (relX * 300)
+        
+        -- Map position scale from 50 to 350 speed units
+        tweenSpeed = math.floor(50 + (relX * 300))
+        speedLabel.Text = "Tween Speed: " .. tostring(tweenSpeed)
     end
 end)
 
--- Find Closest Chest Function
+-- Deep Map Search for Every Chest Instance
+local function getAllChests()
+    local chests = {}
+    -- Blox Fruits spawns chests inside folders or deeper layers in Workspace
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") and string.find(string.lower(obj.Name), "chest") then
+            local part = obj.PrimaryPart or obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChildWhichIsA("BasePart")
+            if part then
+                table.insert(chests, {instance = obj, part = part})
+            end
+        end
+    end
+    return chests
+end
+
+-- Find Next Nearest Target
 local function getClosestChest()
+    local list = getAllChests()
     local closest = nil
     local shortestDist = math.huge
     
-    for _, obj in ipairs(Workspace:GetChildren()) do
-        -- Blox Fruits chests are generally named "Chest" or contain "Chest"
-        if obj:IsA("Model") and string.find(obj.Name, "Chest") then
-            local part = obj.PrimaryPart or obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChildWhichIsA("BasePart")
-            if part then
-                local dist = (rootPart.Position - part.Position).Magnitude
-                if dist < shortestDist then
-                    shortestDist = dist
-                    closest = part
-                end
-            end
+    for _, item in ipairs(list) do
+        local dist = (rootPart.Position - item.part.Position).Magnitude
+        if dist < shortestDist then
+            shortestDist = dist
+            closest = item.part
         end
     end
     return closest
 end
 
--- Toggle Button Event
+-- Toggle click management
 toggleBtn.MouseButton1Click:Connect(function()
     toggled = not toggled
-    toggleBtn.Text = toggled and "Status: ON" or "Status: OFF"
-    
-    if not toggled and currentTween then
-        currentTween:Cancel()
+    if toggled then
+        toggleBtn.Text = "Chest Farm: ON"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+    else
+        toggleBtn.Text = "Chest Farm: OFF"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        if currentTween then
+            currentTween:Cancel()
+        end
     end
 end)
 
--- Main Loop
+-- Main Tween Core Controller
 task.spawn(function()
     while true do
-        task.wait(0.1)
-        if toggled then
-            local chest = getClosestChest()
-            if chest then
-                local dist = (rootPart.Position - chest.Position).Magnitude
+        task.wait(0.2)
+        if toggled and rootPart then
+            local targetPart = getClosestChest()
+            
+            if targetPart then
+                local dist = (rootPart.Position - targetPart.Position).Magnitude
                 local timeTaken = dist / tweenSpeed
                 
+                -- Create clean linear path movement
                 local info = TweenInfo.new(timeTaken, Enum.EasingStyle.Linear)
-                currentTween = TweenService:Create(rootPart, info, {CFrame = chest.CFrame + Vector3.new(0, 3, 0)})
+                currentTween = TweenService:Create(rootPart, info, {CFrame = targetPart.CFrame})
                 currentTween:Play()
                 
                 local finished = false
-                currentTween.Completed:Connect(function()
+                local connection
+                connection = currentTween.Completed:Connect(function()
                     finished = true
+                    connection:Disconnect()
                 end)
                 
+                -- Hold loop execution until target chest reached or cancelled
                 while not finished and toggled do
+                    -- Instantly recalculate path timing if slider moves mid-flight
                     task.wait()
                 end
             end
         end
     end
 end)
-
 -- local P,LP,TS,VU,UIS,RS=game:GetService("Players"),game.Players.LocalPlayer,game:GetService("TweenService"),game:GetService("VirtualUser"),game:GetService("UserInputService"),game:GetService("ReplicatedStorage")local CF=RS:WaitForChild("Remotes"):WaitForChild("CommF_")local PG=LP:WaitForChild("PlayerGui")if PG:FindFirstChild("CoolHubMobileSystem")then PG.CoolHubMobileSystem:Destroy()end
 -- _G.AutoFarm,_G.WeaponSelect,_G.AutoRoll,_G.AutoStore,_G.TweenToFruits,_G.WalkOnWater,_G.AutoGetStyle,_G.AutoGetSword,_G.AutoGetGun,_G.TweenSpeed,_G.KillHub=false,"Melee",false,false,false,true,false,false,false,250,false _G.ChosenStyle,_G.ChosenSword,_G.ChosenGun="Dark Step","Katana","Musket"
 -- local ST,SW,GN={"Dark Step","Electric","Water Kung Fu","Dragon Breath","Superhuman","Death Step","Sharkman Karate","Electric Claw","Dragon Talon","Godhuman"},{"Katana","Cutlass","Dual Katana","Iron Mace","Triple Katana","Pipe","Soul Cane","Bisento","Saber","Koko","Rengoku","Shisui"},{"Musket","Flintlock","Refined Musket","Refined Flintlock","Cannon","Kabucha"}
