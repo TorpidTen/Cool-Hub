@@ -4,7 +4,7 @@ local Library = loadstring(game:HttpGet(Repo .. 'Library.lua'))()
 
 -- [[ LOAD COOL HUB MOTOR MODULE ]] --
 -- CHANGE "TorpidTen" BELOW TO YOUR ACTUAL GITHUB USERNAME IF IT IS DIFFERENT
-local HubModule = loadstring(game:HttpGet("https://githubusercontent.com"))()
+local HubModule = loadstring(game:HttpGet("https://githubusercontent.com/TorpidTen/Cool-Hub/refs/heads/main/module.lua))()
 
 -- [[ SYSTEM SERVICES ]] --
 local Players = game:GetService("Players")
