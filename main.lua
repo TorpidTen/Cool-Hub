@@ -1,177 +1,20 @@
--- [[ COOL HUB | MOBILE LIGHTWEIGHT DEFINITIVE EDITION ]] --
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local CoreGui = game:GetService("CoreGui")
-local TweenService = game:GetService("TweenService")
-local VirtualUser = game:GetService("VirtualUser")
-local UserInputService = game:GetService("UserInputService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local CommF = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommF_")
-
-if CoreGui:FindFirstChild("CoolHubMobileSystem") then 
-    CoreGui.CoolHubMobileSystem:Destroy() 
-end
-
-_G.AutoFarm, _G.WeaponSelect, _G.AutoRoll, _G.AutoStore, _G.TweenToFruits, _G.WalkOnWater, _G.TweenSpeed, _G.KillHub = false, "Melee", false, false, false, true, 250, false
-
-local QuestDatabase = {
-    {MinLevel = 0,    QuestName = "BanditQuest1", QuestID = 1, NPC = "Bandit"},
-    {MinLevel = 10,   QuestName = "JungleQuest",   QuestID = 1, NPC = "Monkey"},
-    {MinLevel = 15,   QuestName = "JungleQuest",   QuestID = 2, NPC = "Gorilla"},
-    {MinLevel = 30,   QuestName = "PirateQuest",   QuestID = 1, NPC = "Pirate"},
-    {MinLevel = 625,  QuestName = "FountainQuest", QuestID = 1, NPC = "Galley Pirate"},
-    {MinLevel = 700,  QuestName = "Area1Quest",    QuestID = 1, NPC = "Raider"},
-    {MinLevel = 1425, QuestName = "ForgottenQuest",QuestID = 1, NPC = "Sea Soldier"},
-    {MinLevel = 1500, QuestName = "PortQuest",     QuestID = 1, NPC = "Pirate Millionaire"},
-    {MinLevel = 2500, QuestName = "TikiQuest1",    QuestID = 1, NPC = "Island Outlaw"}
-}
-
-local MobileGui = Instance.new("ScreenGui")
-MobileGui.Name = "CoolHubMobileSystem"; MobileGui.Parent = CoreGui; MobileGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-local ToggleBadge = Instance.new("ImageButton")
-ToggleBadge.Name = "MobileToggleBadge"; ToggleBadge.Parent = MobileGui; ToggleBadge.Position = UDim2.new(0.05, 0, 0.25, 0); ToggleBadge.Size = UDim2.new(0, 55, 0, 55); ToggleBadge.BackgroundColor3 = Color3.fromRGB(15, 15, 22); ToggleBadge.Image = "rbxassetid://6031243531"; ToggleBadge.ImageColor3 = Color3.fromRGB(0, 255, 204)
-Instance.new("UICorner", ToggleBadge).CornerRadius = UDim.new(1, 0)
-local BadgeStroke = Instance.new("UIStroke", ToggleBadge); BadgeStroke.Color = Color3.fromRGB(0, 255, 204); BadgeStroke.Thickness = 2.5
-
-local MainPanel = Instance.new("Frame")
-MainPanel.Name = "MainWindowFrame"; MainPanel.Parent = MobileGui; MainPanel.Position = UDim2.new(0.3, 0, 0.2, 0); MainPanel.Size = UDim2.new(0, 280, 0, 320); MainPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 18); MainPanel.Visible = true
-Instance.new("UICorner", MainPanel).CornerRadius = UDim.new(0, 10)
-local PanelStroke = Instance.new("UIStroke", MainPanel); PanelStroke.Color = Color3.fromRGB(28, 28, 40); PanelStroke.Thickness = 1.5
-
-local TitleLabel = Instance.new("TextLabel")
-TitleLabel.Parent = MainPanel; TitleLabel.Size = UDim2.new(1, 0, 0, 45); TitleLabel.BackgroundColor3 = Color3.fromRGB(18, 18, 26); TitleLabel.Font = Enum.Font.GothamBold; TitleLabel.Text = "✦ COOL HUB MOBILE ✦"; TitleLabel.TextColor3 = Color3.fromRGB(0, 255, 204); TitleLabel.TextSize = 16
-Instance.new("UICorner", TitleLabel).CornerRadius = UDim.new(0, 10)
-
-local function buildMenuButton(name, posY, color)
-    local obj = Instance.new("TextButton", MainPanel)
-    obj.Position = UDim2.new(0.07, 0, 0, posY); obj.Size = UDim2.new(0, 240, 0, 42); obj.BackgroundColor3 = Color3.fromRGB(20, 20, 30); obj.Font = Enum.Font.GothamBold; obj.Text = name; obj.TextColor3 = color; obj.TextSize = 13
-    Instance.new("UICorner", obj).CornerRadius = UDim.new(0, 6)
-    local stroke = Instance.new("UIStroke", obj); stroke.Color = Color3.fromRGB(35, 35, 50); stroke.Thickness = 1
-    return obj
-end
-
-local FarmButton = buildMenuButton("Level Farm: OFF", 65, Color3.fromRGB(255, 100, 100))
-local FruitButton = buildMenuButton("Fruit Hunter: OFF", 125, Color3.fromRGB(255, 100, 100))
-local WaterButton = buildMenuButton("Walk On Water: ON", 185, Color3.fromRGB(0, 255, 204))
-local CloseButton = buildMenuButton("🔴 PANIC CLOSE HUB", 250, Color3.fromRGB(255, 255, 255))
-CloseButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
-
-local dragging, dragInput, dragStart, startPos
-ToggleBadge.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true; dragStart = input.Position; startPos = ToggleBadge.Position
-        input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
-    end
-end)
-ToggleBadge.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end end)
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        ToggleBadge.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-
-ToggleBadge.MouseButton1Click:Connect(function() MainPanel.Visible = not MainPanel.Visible end)
-
-FarmButton.MouseButton1Click:Connect(function()
-    _G.AutoFarm = not _G.AutoFarm
-    FarmButton.Text = _G.AutoFarm and "Level Farm: ACTIVE" or "Level Farm: OFF"
-    FarmButton.TextColor3 = _G.AutoFarm and Color3.fromRGB(0, 255, 204) or Color3.fromRGB(255, 100, 100)
-end)
-
-FruitButton.MouseButton1Click:Connect(function()
-    _G.TweenToFruits = not _G.TweenToFruits; _G.AutoRoll = _G.TweenToFruits; _G.AutoStore = _G.TweenToFruits
-    FruitButton.Text = _G.TweenToFruits and "Fruit Hunter: ACTIVE" or "Fruit Hunter: OFF"
-    FruitButton.TextColor3 = _G.TweenToFruits and Color3.fromRGB(0, 255, 204) or Color3.fromRGB(255, 100, 100)
-end)
-
-WaterButton.MouseButton1Click:Connect(function()
-    _G.WalkOnWater = not _G.WalkOnWater
-    WaterButton.Text = _G.WalkOnWater and "Walk On Water: ON" or "Walk On Water: OFF"
-    WaterButton.TextColor3 = _G.WalkOnWater and Color3.fromRGB(0, 255, 204) or Color3.fromRGB(255, 100, 100)
-end)
-
-CloseButton.MouseButton1Click:Connect(function()
-    _G.KillHub = true; _G.AutoFarm = false; _G.TweenToFruits = false; _G.WalkOnWater = false; MobileGui:Destroy()
-end)
-
-local currentTween = nil
-local function toTarget(targetCFrame)
-    if _G.KillHub then return end
-    local character = player.Character
-    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
-    local rootPart = character.HumanoidRootPart
-    local distance = (rootPart.Position - targetCFrame.Position).Magnitude
-    local duration = distance / _G.TweenSpeed
-    if currentTween then currentTween:Cancel() end
-    currentTween = TweenService:Create(rootPart, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
-    currentTween:Play()
-    local bv = rootPart:FindFirstChild("BodyVelocity") or Instance.new("BodyVelocity", rootPart)
-    bv.Velocity = Vector3.new(0,0,0)
-    task.wait(duration)
-    if bv then bv:Destroy() end
-end
-
-task.spawn(function()
-    while true do
-        task.wait(0.5)
-        if _G.KillHub then break end
-        if _G.WalkOnWater then
-            pcall(function()
-                local sea = workspace:FindFirstChild("Sea") or workspace:FindFirstChild("Water")
-                if sea then sea.CanCollide = true; sea.TouchSize = Vector3.new(2048, 2, 2048) end
-            end)
-        end
-    end
-end)
-
-task.spawn(function()
-    while true do
-        task.wait()
-        if _G.KillHub then break end
-        if _G.AutoFarm then
-            pcall(function()
-                local target = nil
-                local myLevel = player.Data.Level.Value
-                for _, data in ipairs(QuestDatabase) do if myLevel >= data.MinLevel then target = data end end
-                if not target and player.PlayerGui.Main.Quest.Visible == false then return end
-                CommF:InvokeServer("StartQuest", target.QuestName, target.QuestID)
-                for _, npc in pairs(workspace.Enemies:GetChildren()) do
-                    if npc.Name == target.NPC and npc:FindFirstChild("Humanoid") and npc.Humanoid.Health > 0 then
-                        while _G.AutoFarm and npc.Humanoid.Health > 0 and not _G.KillHub do
-                            for _, tool in pairs(player.Backpack:GetChildren()) do
-                                if tool:IsA("Tool") and tool.ToolTip == _G.WeaponSelect then player.Character.Humanoid:EquipTool(tool); break end
-                            end
-                            toTarget(npc.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0))
-                            VirtualUser:CaptureController(); VirtualUser:ClickButton1(Vector2.new(0,0))
-                            task.wait()
-                        end
-                    end
-                end
-            end)
-        end
-    end
-end)
-
-task.spawn(function()
-    while true do
-        task.wait(2)
-        if _G.KillHub then break end
-        if _G.TweenToFruits then
-            pcall(function()
-                for _, item in pairs(workspace:GetChildren()) do
-                    if item:IsA("Tool") and string.find(item.Name, "Fruit") then toTarget(item.Handle.CFrame) end
-                end
-            end)
-        end
-        if _G.AutoRoll then pcall(function() CommF:InvokeServer("Cousin", "Buy") end) end
-        if _G.AutoStore then
-            pcall(function()
-                for _, tool in pairs(player.Backpack:GetChildren()) do
-                    if tool:IsA("Tool") and string.find(tool.Name, "Fruit") then CommF:InvokeServer("StoreFruit", tool.Name, tool) end
-                end
-            end)
-        end
-    end
-end)
+local P=game:GetService("Players")local LP=P.LocalPlayer local CG=game:GetService("CoreGui")local TS=game:GetService("TweenService")local VU=game:GetService("VirtualUser")local UIS=game:GetService("UserInputService")local RS=game:GetService("ReplicatedStorage")local CF=RS:WaitForChild("Remotes"):WaitForChild("CommF_")if CG:FindFirstChild("CoolHubMobileSystem")then CG.CoolHubMobileSystem:Destroy()end
+_G.AutoFarm,_G.WeaponSelect,_G.AutoRoll,_G.AutoStore,_G.TweenToFruits,_G.WalkOnWater,_G.AutoGetStyle,_G.AutoGetSword,_G.AutoGetGun,_G.TweenSpeed,_G.KillHub=false,"Melee",false,false,false,true,false,false,false,250,false
+local ST={"Dark Step","Electric","Water Kung Fu","Dragon Breath","Superhuman","Death Step","Sharkman Karate","Electric Claw","Dragon Talon","Godhuman","Sanguine Art"}
+local SW={"Katana","Cutlass","Dual Katana","Iron Mace","Triple Katana","Pipe","Soul Cane","Bisento","Saber","Koko","Midnight Blade","Rengoku","Shiisui","Saddi","Wando","True Triple Katana"}
+local GN={"Musket","Flintlock","Refined Musket","Refined Flintlock","Cannon","Kabucha"}
+local QD={{L=0,Q="BanditQuest1",I=1,N="Bandit"},{L=10,Q="JungleQuest",I=1,N="Monkey"},{L=15,Q="JungleQuest",I=2,N="Gorilla"},{L=30,Q="PirateQuest",I=1,N="Pirate"},{L=625,Q="FountainQuest",I=1,N="Galley Pirate"},{L=700,Q="Area1Quest",I=1,N="Raider"},{L=1425,Q="ForgottenQuest",I=1,N="Sea Soldier"},{L=1500,Q="PortQuest",I=1,N="Pirate Millionaire"},{L=2500,Q="TikiQuest1",I=1,N="Island Outlaw"}}
+local MG=Instance.new("ScreenGui",CG)MG.Name="CoolHubMobileSystem";MG.ZIndexBehavior=Enum.ZIndexBehavior.Sibling
+local TB=Instance.new("ImageButton",MG)TB.Name="MobileToggleBadge";TB.Position=UDim2.new(0.05,0,0.25,0);TB.Size=UDim2.new(0,55,0,55);TB.BackgroundColor3=Color3.fromRGB(15,15,22);TB.Image="rbxassetid://6031243531";TB.ImageColor3=Color3.fromRGB(0,255,204)Instance.new("UICorner",TB).CornerRadius=UDim.new(1,0);local BS=Instance.new("UIStroke",TB);BS.Color=Color3.fromRGB(0,255,204);BS.Thickness=2.5
+local MP=Instance.new("Frame",MG)MP.Name="MainWindowFrame";MP.Position=UDim2.new(0.3,0,0.15,0);MP.Size=UDim2.new(0,290,0,350);MP.BackgroundColor3=Color3.fromRGB(12,12,18);MP.Visible=true;Instance.new("UICorner",MP).CornerRadius=UDim.new(0,10);local PS=Instance.new("UIStroke",MP);PS.Color=Color3.fromRGB(28,28,40);PS.Thickness=1.5
+local TL=Instance.new("TextLabel",MP)TL.Size=UDim2.new(1,0,0,45);TL.BackgroundColor3=Color3.fromRGB(18,18,26);TL.Font=Enum.Font.GothamBold;TL.Text="✦ COOL HUB UNLIMITED ✦";TL.TextColor3=Color3.fromRGB(0,255,204);TL.TextSize=14;Instance.new("UICorner",TL).CornerRadius=UDim.new(0,10)
+local CT=Instance.new("ScrollingFrame",MP)CT.Position=UDim2.new(0,0,0,45);CT.Size=UDim2.new(1,0,1,-45);CT.BackgroundTransparency=1;CT.CanvasSize=UDim2.new(0,0,0,480);CT.ScrollBarThickness=4
+local function bT(n,y,g)local b=Instance.new("TextButton",CT)b.Position=UDim2.new(0.05,0,0,y);b.Size=UDim2.new(0,250,0,36);b.BackgroundColor3=Color3.fromRGB(20,20,30);b.Font=Enum.Font.GothamBold;b.Text=n..": OFF";b.TextColor3=Color3.fromRGB(255,100,100);b.TextSize=11;Instance.new("UICorner",b).CornerRadius=UDim.new(0,6);Instance.new("UIStroke",b).Color=Color3.fromRGB(35,35,50)
+b.MouseButton1Click:Connect(function()_G[g]=not _G[g];b.Text=_G[g]and n..": ACTIVE"or n..": OFF";b.TextColor3=_G[g]and Color3.fromRGB(0,255,204)or Color3.fromRGB(255,100,100)end)end
+bT("Auto Level Grind",15,"AutoFarm");bT("Auto Acquire All Melee",65,"AutoGetStyle");bT("Auto Purchase All Swords",115,"AutoGetSword");bT("Auto Purchase All Guns",165,"AutoGetGun");bT("Auto Fruit Sniper",215,"TweenToFruits");bT("Auto Gacha Roller",265,"AutoRoll");bT("Auto Fruit Storer",315,"AutoStore");bT("Walk On Water Physics",365,"WalkOnWater")
+local KB=Instance.new("TextButton",CT)KB.Position=UDim2.new(0.05,0,0,420);KB.Size=UDim2.new(0,250,0,38);KB.BackgroundColor3=Color3.fromRGB(160,45,45);KB.Font=Enum.Font.GothamBold;KB.Text="🔴 PANIC CLOSE HUB";KB.TextColor3=Color3.fromRGB(255,255,255);KB.TextSize=12;Instance.new("UICorner",KB).CornerRadius=UDim.new(0,6)KB.MouseButton1Click:Connect(function()_G.KillHub=true;_G.AutoFarm,_G.TweenToFruits,_G.WalkOnWater,_G.AutoGetStyle,_G.AutoGetSword,_G.AutoGetGun=false,false,false,false,false,false;MG:Destroy()end)
+local dg,di,ds,sp;TB.InputBegan:Connect(function(i)if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then dg=true;ds=i.Position;sp=TB.Position;i.Changed:Connect(function()if i.UserInputState==Enum.UserInputState.End then dg=false endend)endend)TB.InputChanged:Connect(function(i)if i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch then di=i endend)UIS.InputChanged:Connect(function(i)if i==di and dg then local d=i.Position-ds;TB.Position=UDim2.new(sp.X.Scale,sp.X.Offset+d.X,sp.Y.Scale,sp.Y.Offset+d.Y)endend)TB.MouseButton1Click:Connect(function()MP.Visible=not MP.Visibleend)
+local cT=nil local function tT(tCF)if _G.KillHub then return end local c=LP.Character if not c or not c:FindFirstChild("HumanoidRootPart")then return end local rp=c.HumanoidRootPart local d=(rp.Position-tCF.Position).Magnitude local du=d/_G.TweenSpeed if cT then cT:Cancel()end cT=TS:Create(rp,TweenInfo.new(du,Enum.EasingStyle.Linear),{CFrame=tCF})cT:Play()local bv=rp:FindFirstChild("BodyVelocity")or Instance.new("BodyVelocity",rp)bv.Velocity=Vector3.new(0,0,0)task.wait(du)if bv then bv:Destroy()endend
+task.spawn(function()while true do task.wait(0.5)if _G.KillHub then break end if _G.WalkOnWater then pcall(function()local s=workspace:FindFirstChild("Sea")or workspace:FindFirstChild("Water")if s then s.CanCollide=true;s.TouchSize=Vector3.new(2048,2,2048)endend)end end end)
+task.spawn(function()while true do task.wait()if _G.KillHub then break end if _G.AutoFarm then pcall(function()local t=nil for _,d in ipairs(QD)do if LP.Data.Level.Value>=d.L then t=d end end if not t then return end if LP.PlayerGui.Main.Quest.Visible==false then CF:InvokeServer("StartQuest",t.Q,t.I)end for _,n in pairs(workspace.Enemies:GetChildren())do if n.Name==t.N and n:FindFirstChild("Humanoid")and n.Humanoid.Health>0 then while _G.AutoFarm and n.Humanoid.Health>0 and not _G.KillHub do for _,tl in pairs(LP.Backpack:GetChildren())do if tl:IsA("Tool")and tl.ToolTip==_G.WeaponSelect then LP.Character.Humanoid:EquipTool(tl);break end end tT(n.HumanoidRootPart.CFrame*CFrame.new(0,5,0))VU:CaptureController();VU:ClickButton1(Vector2.new(0,0))task.wait()end end end end)end end end)
+task.spawn(function()while true do task.wait(2)if _G.KillHub then break end if _G.TweenToFruits then pcall(function()for _,i in pairs(workspace:GetChildren())do if i:IsA("Tool")and string.find(i.Name,"Fruit")then tT(i.Handle.CFrame)end end end)end if _G.AutoRoll then pcall(function()CF:InvokeServer("Cousin","Buy")end)end if _G.AutoStore then pcall(function()for _,tl in pairs(LP.Backpack:GetChildren())do if tl:IsA("Tool")and string.find(tl.Name,"Fruit")then CF:InvokeServer("StoreFruit",tl.Name,tl)end end end)end if _G.AutoGetStyle then pcall(function()for _,n in ipairs(ST)do if not LP.Backpack:FindFirstChild(n)and not LP.Character:FindFirstChild(n)then CF:InvokeServer("Buy"..n:gsub(" ",""),n)end end end)end if _G.AutoGetSword then pcall(function()for _,n in ipairs(SW)do if not LP.Backpack:FindFirstChild(n)and not LP.Character:FindFirstChild(n)then CF:InvokeServer("BuySword",n)end end end)end if _G.AutoGetGun then pcall(function()for _,n in ipairs(GN)do if not LP.Backpack:FindFirstChild(n)and not LP.Character:FindFirstChild(n)then CF:InvokeServer("BuyGun",n)end end end)end end end)
