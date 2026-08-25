@@ -1,20 +1,17 @@
--- [[ INITIALIZE LINORIA LIBRARY ]] --
-local Repo = 'https://githubusercontent.com'
-local Library = loadstring(game:HttpGet(Repo .. 'Library.lua'))()
-
--- [[ LOAD COOL HUB MOTOR MODULE ]] --
--- CHANGE "TorpidTen" BELOW TO YOUR ACTUAL GITHUB USERNAME IF IT IS DIFFERENT
-local HubModule = loadstring(game:HttpGet("https://githubusercontent.com/TorpidTen/Cool-Hub/refs/heads/main/module.lua))()
+-- [[ INITIALIZE MOBILE-OPTIMIZED RAYFIELD UI ]] --
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu'))()
 
 -- [[ SYSTEM SERVICES ]] --
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+local VirtualUser = game:GetService("VirtualUser")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CommF = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommF_")
 
--- [[ LEVEL TO QUEST DATABASE ]] --
+-- [[ FULL COMPREHENSIVE QUEST DATA ]] --
 local QuestDatabase = {
     {MinLevel = 0,    QuestName = "BanditQuest1", QuestID = 1, NPC = "Bandit"},
     {MinLevel = 10,   QuestName = "JungleQuest",   QuestID = 1, NPC = "Monkey"},
@@ -27,112 +24,150 @@ local QuestDatabase = {
     {MinLevel = 2500, QuestName = "TikiQuest1",    QuestID = 1, NPC = "Island Outlaw"}
 }
 
--- [[ UI ENGINE WINDOW SETUP ]] --
-local Window = Library:CreateWindow({ 
-    Title = '✦ COOL HUB | MOBILE EDITION ✦', 
-    Center = true, 
-    AutoShow = true,
-    TabPadding = 10
+-- [[ CONFIGURATION VALUES ]] --
+getgenv().AutoFarm = false
+getgenv().WeaponSelect = "Melee"
+getgenv().SelectedStyle = "Dark Step"
+getgenv().AutoGetStyle = false
+getgenv().AutoRoll = false
+getgenv().AutoStore = false
+getgenv().TweenToFruits = false
+getgenv().WalkOnWater = true
+getgenv().TweenSpeed = 250
+getgenv().KillHub = false
+
+-- [[ UI ENGING WINDOW SETUP ]] --
+local Window = Rayfield:CreateWindow({
+   Name = "✦ COOL HUB | MOBILE DEFINITIVE ✦",
+   LoadingTitle = "⚡ Loading Cool Hub Protocols...",
+   LoadingSubtitle = "by TorpidTen",
+   ConfigurationSaving = { Enabled = false }
 })
 
-Library.BackgroundColor = Color3.fromRGB(8, 8, 12)       
-Library.MainColor = Color3.fromRGB(14, 14, 20)             
-Library.AccentColor = Color3.fromRGB(0, 255, 204)          
-Library.AccentColorDark = Color3.fromRGB(168, 50, 247)     
-Library.OutlineColor = Color3.fromRGB(24, 24, 36)          
-Library.FontColor = Color3.fromRGB(245, 245, 250)         
+-- [[ ALL TABS CONFIGURATION ]] --
+local MainTab = Window:CreateTab("⚡ NEXUS ENGINE")
+local CombatTab = Window:CreateTab("⚔ WEAPONS")
+local FruitTab = Window:CreateTab("🍇 FRUIT MANAGER")
+local MiscTab = Window:CreateTab("🔮 MISC & WORLD")
 
-local Tabs = { 
-    Main = Window:AddTab('⚡ NEXUS ENGINE'), 
-    Combat = Window:AddTab('⚔ WEAPONS'),
-    Fruits = Window:AddTab('🍇 FRUIT MANAGER'),
-    Raids = Window:AddTab('🌋 RAID SYSTEM'),
-    Misc = Window:AddTab('🔮 MISC & WORLD'),
-    Settings = Window:AddTab('⚙ SETTINGS')
-}
+-- [[ 1. TAB CONTENT: NEXUS ENGINE ]] --
+MainTab:CreateToggle({
+   Name = "ACTIVATE TWEEN FARM ENGINE",
+   CurrentValue = false,
+   Callback = function(Value) getgenv().AutoFarm = Value end
+})
 
--- TAB DESIGN LAYOUTS
-local FarmGroupBox = Tabs.Main:AddLeftGroupbox('⚡ AUTOMATION LOOPS')
-FarmGroupBox:AddToggle('AutoFarm', { Text = 'ACTIVATE TWEEN FARM ENGINE', Default = false })
-FarmGroupBox:AddDropdown('WeaponSelect', { Values = { 'Melee', 'Sword', 'Blox Fruit' }, Default = 1, Text = 'PRIMARY COMBAT STRATEGY' })
+MainTab:CreateDropdown({
+   Name = "PRIMARY COMBAT STRATEGY",
+   Options = {"Melee","Sword","Blox Fruit"},
+   CurrentOption = {"Melee"},
+   MultipleOptions = false,
+   Callback = function(Option) getgenv().WeaponSelect = Option[1] end
+})
 
-local CombatGroupBox = Tabs.Combat:AddLeftGroupbox('⚔ WEAPON FORGE VENDORS')
-CombatGroupBox:AddDropdown('SelectedStyle', { Values = {'Dark Step', 'Electric', 'Water Kung Fu', 'Superhuman', 'Godhuman'}, Default = 1, Text = 'FIGHTING STYLE TARGET' })
-CombatGroupBox:AddToggle('AutoGetStyle', { Text = 'AUTO UNLOCK SELECTED STYLE', Default = false })
+-- [[ 2. TAB CONTENT: WEAPONS ]] --
+CombatTab:CreateDropdown({
+   Name = "FIGHTING STYLE TARGET",
+   Options = {"Dark Step","Electric","Water Kung Fu","Superhuman","Godhuman"},
+   CurrentOption = {"Dark Step"},
+   MultipleOptions = false,
+   Callback = function(Option) getgenv().SelectedStyle = Option[1] end
+})
 
-local FruitGroupBox = Tabs.Fruits:AddLeftGroupbox('🔮 FRUIT REPLICATION ARCHIVE')
-FruitGroupBox:AddToggle('AutoRoll', { Text = 'AUTOMATED GACHA ROLL', Default = false })
-FruitGroupBox:AddToggle('AutoStore', { Text = 'INSTANT INVENTORY STORAGE', Default = false })
-FruitGroupBox:AddToggle('TweenToFruits', { Text = 'TWEEN TO SPAWNED WORLD FRUITS', Default = false })
+CombatTab:CreateToggle({
+   Name = "AUTO UNLOCK SELECTED STYLE",
+   CurrentValue = false,
+   Callback = function(Value) getgenv().AutoGetStyle = Value end
+})
 
-local RaidGroupBox = Tabs.Raids:AddLeftGroupbox('🌋 RAID MOTORS')
-RaidGroupBox:AddToggle('AutoRaid', { Text = 'AUTO RUN ACTIVE RAID ROOM', Default = false })
+-- [[ 3. TAB CONTENT: FRUIT MANAGER ]] --
+FruitTab:CreateToggle({
+   Name = "AUTOMATED GACHA ROLL",
+   CurrentValue = false,
+   Callback = function(Value) getgenv().AutoRoll = Value end
+})
 
-local MiscGroupBox = Tabs.Misc:AddLeftGroupbox('🌊 ENVIRONMENT MODIFIERS')
-MiscGroupBox:AddToggle('WalkOnWater', { Text = 'WALK ON WATER PROTOCOL', Default = true }) 
+FruitTab:CreateToggle({
+   Name = "INSTANT INVENTORY STORAGE",
+   CurrentValue = false,
+   Callback = function(Value) getgenv().AutoStore = Value end
+})
 
-local SettingsGroupBox = Tabs.Settings:AddLeftGroupbox('🎛 QUANTUM SYSTEM MECHANICS')
-SettingsGroupBox:AddSlider('TweenSpeed', { Text = 'VELOCITY PROPULSION VECTOR', Default = 250, Min = 50, Max = 400, Round = 0 })
+FruitTab:CreateToggle({
+   Name = "TWEEN TO SPAWNED WORLD FRUITS",
+   CurrentValue = false,
+   Callback = function(Value) getgenv().TweenToFruits = Value end
+})
 
-SettingsGroupBox:AddButton('KILL EXECUTION ENGINE (CLOSE HUB)', function()
-    _G.KillHub = true
-    for _, toggle in pairs(Toggles) do if toggle.SetValue then toggle:SetValue(false) end end
-    if CoreGui:FindFirstChild("CoolHubMobileSystem") then CoreGui.CoolHubMobileSystem:Destroy() end
-    Library:Unload()
-end)
+-- [[ 4. TAB CONTENT: MISC & SETTINGS ]] --
+MiscTab:CreateToggle({
+   Name = "WALK ON WATER PROTOCOL",
+   CurrentValue = true,
+   Callback = function(Value) getgenv().WalkOnWater = Value end
+})
 
--- [[ MOBILE DRAGGABLE BUTTON INTERFACE ]] --
-local MobileGui = Instance.new("ScreenGui")
-local IconButton = Instance.new("ImageButton")
-local UICorner = Instance.new("UICorner")
-local UIStroke = Instance.new("UIStroke")
+MiscTab:CreateSlider({
+   Name = "VELOCITY PROPULSION VECTOR (SPEED)",
+   Min = 50,
+   Max = 400,
+   CurrentValue = 250,
+   Increment = 10,
+   Suffix = "SPS",
+   Callback = function(Value) getgenv().TweenSpeed = Value end
+})
 
-MobileGui.Name = "CoolHubMobileSystem"
-MobileGui.Parent = CoreGui
-MobileGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+MiscTab:CreateButton({
+   Name = "KILL HUB (PANIC CLOSE BUTTON)",
+   Callback = function()
+       getgenv().KillHub = true
+       getgenv().AutoFarm = false
+       getgenv().WalkOnWater = false
+       Rayfield:Destroy()
+   end
+})
 
-IconButton.Name = "MobileIcon"
-IconButton.Parent = MobileGui
-IconButton.Position = UDim2.new(0.1, 0, 0.2, 0) 
-IconButton.Size = UDim2.new(0, 50, 0, 50) 
-IconButton.BackgroundColor3 = Color3.fromRGB(14, 14, 20)
-IconButton.Image = "rbxassetid://6031243531" 
-IconButton.ImageColor3 = Color3.fromRGB(0, 255, 204)
+-- [[ BACK-END SYSTEM UTILITY LOOPS ]] --
+local currentTween = nil
+local function toTarget(targetCFrame)
+    if getgenv().KillHub then return end
+    local character = player.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+    
+    local rootPart = character.HumanoidRootPart
+    local distance = (rootPart.Position - targetCFrame.Position).Magnitude
+    local duration = distance / getgenv().TweenSpeed
+    
+    if currentTween then currentTween:Cancel() end
+    
+    local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+    currentTween = TweenService:Create(rootPart, tweenInfo, {CFrame = targetCFrame})
+    currentTween:Play()
+    
+    local bodyVelocity = rootPart:FindFirstChild("BodyVelocity") or Instance.new("BodyVelocity", rootPart)
+    bodyVelocity.Velocity = Vector3.new(0,0,0)
+    
+    task.wait(duration)
+    if bodyVelocity then bodyVelocity:Destroy() end
+end
 
-UICorner.CornerRadius = UDim.new(1, 0) 
-UICorner.Parent = IconButton
-UIStroke.Color = Color3.fromRGB(0, 255, 204)
-UIStroke.Thickness = 2
-UIStroke.Parent = IconButton
-
-local dragging, dragInput, dragStart, startPos
-IconButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = IconButton.Position
-        input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
+-- Weapon Auto-Equipper
+local function equipMyWeapon()
+    local character = player.Character
+    if not character then return end
+    for _, tool in pairs(player.Backpack:GetChildren()) do
+        if tool:IsA("Tool") and tool.ToolTip == getgenv().WeaponSelect then
+            character.Humanoid:EquipTool(tool)
+            break
+        end
     end
-end)
-IconButton.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
-end)
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        IconButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-IconButton.MouseButton1Click:Connect(function() Library:SetOpen(not Library.Open) end)
+end
 
--- [[ PROCESS THREAD BACKGROUND LOOPS ]] --
-
--- Loop A: Walk on Water
+-- Loop 1: Walk on Water
 task.spawn(function()
     while true do
         task.wait(0.5)
-        if _G.KillHub then break end
-        if Toggles.WalkOnWater and Toggles.WalkOnWater.Value then
+        if getgenv().KillHub then break end
+        if getgenv().WalkOnWater then
             pcall(function()
                 local sea = workspace:FindFirstChild("Sea") or workspace:FindFirstChild("Water")
                 if sea then sea.CanCollide = true; sea.TouchSize = Vector3.new(2048, 2, 2048) end
@@ -141,12 +176,12 @@ task.spawn(function()
     end
 end)
 
--- Loop B: Auto Level Grinder
+-- Loop 2: Auto Level Grind Engine
 task.spawn(function()
     while true do
         task.wait()
-        if _G.KillHub then break end
-        if Toggles.AutoFarm and Toggles.AutoFarm.Value then
+        if getgenv().KillHub then break end
+        if getgenv().AutoFarm then
             pcall(function()
                 local target = nil
                 local myLevel = player.Data.Level.Value
@@ -159,11 +194,11 @@ task.spawn(function()
                 
                 for _, npc in pairs(workspace.Enemies:GetChildren()) do
                     if npc.Name == target.NPC and npc:FindFirstChild("Humanoid") and npc.Humanoid.Health > 0 then
-                        while Toggles.AutoFarm.Value and npc.Humanoid.Health > 0 and not _G.KillHub do
-                            HubModule.equipMyWeapon(Options.WeaponSelect.Value)
-                            HubModule.toTarget(npc.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0), Options.TweenSpeed.Value)
-                            game:GetService("VirtualUser"):CaptureController()
-                            game:GetService("VirtualUser"):ClickButton1(Vector2.new(0,0))
+                        while getgenv().AutoFarm and npc.Humanoid.Health > 0 and not getgenv().KillHub do
+                            equipMyWeapon()
+                            toTarget(npc.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0))
+                            VirtualUser:CaptureController()
+                            VirtualUser:ClickButton1(Vector2.new(0,0))
                             task.wait()
                         end
                     end
@@ -173,22 +208,22 @@ task.spawn(function()
     end
 end)
 
--- Loop C: Fruit Gacha & Tracking Mechanics
+-- Loop 3: Fruit Automatons
 task.spawn(function()
     while true do
         task.wait(2)
-        if _G.KillHub then break end
-        if Toggles.TweenToFruits and Toggles.TweenToFruits.Value then
+        if getgenv().KillHub then break end
+        if getgenv().TweenToFruits then
             pcall(function()
                 for _, item in pairs(workspace:GetChildren()) do
                     if item:IsA("Tool") and string.find(item.Name, "Fruit") then
-                        HubModule.toTarget(item.Handle.CFrame, Options.TweenSpeed.Value)
+                        toTarget(item.Handle.CFrame)
                     end
                 end
             end)
         end
-        if Toggles.AutoRoll and Toggles.AutoRoll.Value then pcall(function() CommF:InvokeServer("Cousin", "Buy") end) end
-        if Toggles.AutoStore and Toggles.AutoStore.Value then
+        if getgenv().AutoRoll then pcall(function() CommF:InvokeServer("Cousin", "Buy") end) end
+        if getgenv().AutoStore then
             pcall(function()
                 for _, tool in pairs(player.Backpack:GetChildren()) do
                     if tool:IsA("Tool") and string.find(tool.Name, "Fruit") then
@@ -200,4 +235,9 @@ task.spawn(function()
     end
 end)
 
-Library:Notify({ Text = "⚡ COOL HUB MOBILE INJECTED.", Duration = 4 })
+Rayfield:Notify({
+   Title = "Cool Hub Injected!",
+   Content = "Enjoy farming on mobile!",
+   Duration = 5,
+   Image = 4483362458,
+})
