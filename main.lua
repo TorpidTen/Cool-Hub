@@ -8,6 +8,7 @@ local player = Players.LocalPlayer
 local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
 local VirtualUser = game:GetService("VirtualUser")
+local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CommF = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommF_")
 
@@ -17,7 +18,7 @@ local QuestDatabase = {
     {MinLevel = 10,   QuestName = "JungleQuest",   QuestID = 1, NPC = "Monkey"},
     {MinLevel = 15,   QuestName = "JungleQuest",   QuestID = 2, NPC = "Gorilla"},
     {MinLevel = 30,   QuestName = "PirateQuest",   QuestID = 1, NPC = "Pirate"},
-    {MinLevel = 625,  QuestName = "FountainQuest", QuestID = 1, NPC = "Galley Pirate"},
+    {MinLevel = 625,  GoldenQuest = "FountainQuest", QuestID = 1, NPC = "Galley Pirate"},
     {MinLevel = 700,  QuestName = "Area1Quest",    QuestID = 1, NPC = "Raider"},
     {MinLevel = 1425, QuestName = "ForgottenQuest",QuestID = 1, NPC = "Sea Soldier"},
     {MinLevel = 1500, QuestName = "PortQuest",     QuestID = 1, NPC = "Pirate Millionaire"},
@@ -26,7 +27,7 @@ local QuestDatabase = {
 
 -- [[ UI ENGINE WINDOW SETUP ]] --
 local Window = Library:CreateWindow({ 
-    Title = '✦ COOL HUB | THE DEFINITIVE EDITION ✦', 
+    Title = '✦ COOL HUB | MOBILE EDITION ✦', 
     Center = true, 
     AutoShow = true,
     TabPadding = 10
@@ -72,58 +73,79 @@ RaidGroupBox:AddToggle('AutoRaid', { Text = 'AUTO RUN ACTIVE RAID ROOM', Default
 
 -- 5. TAB: MISC & WORLD (WALK ON WATER)
 local MiscGroupBox = Tabs.Misc:AddLeftGroupbox('🌊 ENVIRONMENT MODIFIERS')
-MiscGroupBox:AddToggle('WalkOnWater', { Text = 'WALK ON WATER PROTOCOL', Default = true }) -- True on Spawn
+MiscGroupBox:AddToggle('WalkOnWater', { Text = 'WALK ON WATER PROTOCOL', Default = true }) 
 
 -- 6. TAB: SETTINGS & SLIDERS
 local SettingsGroupBox = Tabs.Settings:AddLeftGroupbox('🎛 QUANTUM SYSTEM MECHANICS')
 SettingsGroupBox:AddSlider('TweenSpeed', { Text = 'VELOCITY PROPULSION VECTOR', Default = 250, Min = 50, Max = 400, Round = 0 })
 
--- Add Close Button to Settings to completely shut down the tool safely
+-- Kill Engine Function
 SettingsGroupBox:AddButton('KILL EXECUTION ENGINE (CLOSE HUB)', function()
     _G.KillHub = true
-    -- Reset Toggles
     for _, toggle in pairs(Toggles) do if toggle.SetValue then toggle:SetValue(false) end end
-    -- Delete UI Elements
-    if CoreGui:FindFirstChild("CoolHubMinimizeSystem") then CoreGui.CoolHubMinimizeSystem:Destroy() end
+    if CoreGui:FindFirstChild("CoolHubMobileSystem") then CoreGui.CoolHubMobileSystem:Destroy() end
     Library:Unload()
 end)
 
--- [[ FLOATING COMPACT WINDOW HUB PROFILE ]] --
-local MinimizeGui = Instance.new("ScreenGui")
-local ToggleButton = Instance.new("TextButton")
+-- [[ MOBILE FLOATING DRAGGABLE ICON SYSTEM ]] --
+local MobileGui = Instance.new("ScreenGui")
+local IconButton = Instance.new("ImageButton")
 local UICorner = Instance.new("UICorner")
 local UIStroke = Instance.new("UIStroke")
 
-MinimizeGui.Name = "CoolHubMinimizeSystem"
-MinimizeGui.Parent = CoreGui
-MinimizeGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+MobileGui.Name = "CoolHubMobileSystem"
+MobileGui.Parent = CoreGui
+MobileGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-ToggleButton.Name = "CoolHubBadge"
-ToggleButton.Parent = MinimizeGui
-ToggleButton.Position = UDim2.new(0.05, 0, 0.1, 0) 
-ToggleButton.Size = UDim2.new(0, 140, 0, 45)
-ToggleButton.BackgroundColor3 = Color3.fromRGB(14, 14, 20)
-ToggleButton.Font = Enum.Font.GothamBold
-ToggleButton.Text = "⚡ Cool Hub [Open]"
-ToggleButton.TextColor3 = Color3.fromRGB(0, 255, 204)
-ToggleButton.TextSize = 14
-ToggleButton.Visible = false 
+IconButton.Name = "MobileIcon"
+IconButton.Parent = MobileGui
+IconButton.Position = UDim2.new(0.1, 0, 0.2, 0) 
+IconButton.Size = UDim2.new(0, 50, 0, 50) 
+IconButton.BackgroundColor3 = Color3.fromRGB(14, 14, 20)
+IconButton.Image = "rbxassetid://6031243531" 
+IconButton.ImageColor3 = Color3.fromRGB(0, 255, 204)
+IconButton.Visible = true 
 
-UICorner.CornerRadius = UDim.new(0, 8)
-UICorner.Parent = ToggleButton
+UICorner.CornerRadius = UDim.new(1, 0) 
+UICorner.Parent = IconButton
 
 UIStroke.Color = Color3.fromRGB(0, 255, 204)
 UIStroke.Thickness = 2
-UIStroke.Parent = ToggleButton
+UIStroke.Parent = IconButton
 
--- Minimize/Maximize Logic Interactions
-local function setHubState(isOpen)
-    Library:SetOpen(isOpen)
-    ToggleButton.Visible = not isOpen
+-- Smooth Mobile Dragging Script Logic
+local dragging, dragInput, dragStart, startPos
+local function update(input)
+    local delta = input.Position - dragStart
+    IconButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 end
 
-ToggleButton.MouseButton1Click:Connect(function() setHubState(true) end)
-Window:OnClosed(function() setHubState(false) end)
+IconButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = IconButton.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+        end)
+    end
+end)
+
+IconButton.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then update(input) end
+end)
+
+-- Tap Icon To Open/Close Menu Toggle
+IconButton.MouseButton1Click:Connect(function()
+    Library:SetOpen(not Library.Open)
+end)
 
 -- [[ BACK-END UTILITY MOTOR CODES ]] --
 local currentTween = nil
@@ -150,7 +172,7 @@ local function toTarget(targetCFrame)
     if bodyVelocity then bodyVelocity:Destroy() end
 end
 
--- Walk On Water Physics Overwrite Engine
+-- Walk on Water Motor
 task.spawn(function()
     while true do
         task.wait(0.2)
@@ -167,7 +189,7 @@ task.spawn(function()
     end
 end)
 
--- Main Dynamic Farm Sequence Loop (Fixed cut-off here)
+-- Main Farm Engine (Fixed and closed completely here)
 task.spawn(function()
     while true do
         task.wait()
@@ -206,7 +228,7 @@ task.spawn(function()
     end
 end)
 
--- Fruit Collections/Roll Management Loop
+-- Fruit Systems Loop
 task.spawn(function()
     while true do
         task.wait(2)
@@ -218,7 +240,9 @@ task.spawn(function()
                 end
             end
         end
-        if Toggles.AutoRoll and Toggles.AutoRoll.Value then CommF:InvokeServer("Cousin", "Buy") end
+        if Toggles.AutoRoll and Toggles.AutoRoll.Value then 
+            CommF:InvokeServer("Cousin", "Buy") 
+        end
         if Toggles.AutoStore and Toggles.AutoStore.Value then
             for _, tool in pairs(player.Backpack:GetChildren()) do
                 if tool:IsA("Tool") and string.find(tool.Name, "Fruit") then
@@ -229,4 +253,4 @@ task.spawn(function()
     end
 end)
 
-Library:Notify({ Text = "⚡ COOL HUB RUNNING PROTOCOLS.", Duration = 4 })
+Library:Notify({ Text = "⚡ COOL HUB MOBILE INJECTED.", Duration = 4 })
