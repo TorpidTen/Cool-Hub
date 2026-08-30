@@ -1,191 +1,69 @@
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
 
-local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local rootPart = character:WaitForChild("HumanoidRootPart")
+-- State Variables
+local isToggled = false
+local tweenSpeed = 100 -- Default studs per second
 
-player.CharacterAdded:Connect(function(newChar)
-    character = newChar
-    rootPart = newChar:WaitForChild("HumanoidRootPart")
-end)
-
--- UI Generation
-local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-screenGui.Name = "ChestFarmUI_v2"
-screenGui.ResetOnSpawn = false
-
-local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0, 220, 0, 140)
-frame.Position = UDim2.new(0.05, 0, 0.4, 0)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.BorderSizePixel = 2
-
-local toggleBtn = Instance.new("TextButton", frame)
-toggleBtn.Size = UDim2.new(0, 200, 0, 40)
-toggleBtn.Position = UDim2.new(0, 10, 0, 10)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-toggleBtn.Text = "Chest Farm: OFF"
-toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleBtn.TextSize = 16
-
-local speedLabel = Instance.new("TextLabel", frame)
-speedLabel.Size = UDim2.new(0, 200, 0, 20)
-speedLabel.Position = UDim2.new(0, 10, 0, 60)
-speedLabel.BackgroundTransparency = 1
-speedLabel.Text = "Tween Speed: 150"
-speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-
-local sliderBar = Instance.new("Frame", frame)
-sliderBar.Size = UDim2.new(0, 200, 0, 15)
-sliderBar.Position = UDim2.new(0, 10, 0, 90)
-sliderBar.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-
-local sliderHandle = Instance.new("TextButton", sliderBar)
-sliderHandle.Size = UDim2.new(0, 20, 0, 25)
-sliderHandle.Position = UDim2.new(0.33, -10, -0.3, 0)
-sliderHandle.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
-sliderHandle.Text = ""
-
-local toggled = false
-local tweenSpeed = 150 
-local currentTween = nil
-
--- Slider Functionality
-local dragging = false
-sliderHandle.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-    end
-end)
-
-game:GetService("UserInputService").InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
-    end
-end)
-
-RunService.RenderStepped:Connect(function()
-    -- Noclip Loop
-    if toggled and character then
-        for _, part in ipairs(character:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide then
-                part.CanCollide = false
+-- Function to handle the tweening logic
+local function teleportToChests()
+    while isToggled do
+        local character = LocalPlayer.Character
+        local rootPart = character and character:FindFirstChild("HumanoidRootPart")
+        
+        if not rootPart then 
+            task.wait(1) 
+            continue 
+        end
+        
+        -- Locate targets (Assuming objects are named "Chest" or inside a specific folder)
+        -- Note: In complex games, chests are often spawned dynamically or inside specific workspace folders
+        for _, object in ipairs(workspace:GetDescendants()) do
+            if not isToggled then break end -- Stop immediately if toggle is turned off
+            
+            if object.Name == "Chest" and object:IsA("BasePart") then
+                local distance = (rootPart.Position - object.Position).Magnitude
+                local duration = distance / tweenSpeed -- Dynamic time based on slider speed
+                
+                local tweenInfo = TweenInfo.new(
+                    duration,
+                    Enum.EasingStyle.Linear,
+                    Enum.EasingDirection.Out
+                )
+                
+                local tween = TweenService:Create(rootPart, tweenInfo, {CFrame = object.CFrame})
+                tween:Play()
+                
+                -- Wait for the current tween to finish before moving to the next chest
+                tween.Completed:Wait()
+                task.wait(0.5) -- Small delay between chests
             end
         end
+        
+        task.wait(1) -- Safety delay before restarting the loop
     end
-
-    -- Slider math
-    if dragging then
-        local mouse = player:GetMouse()
-        local relX = math.clamp((mouse.X - sliderBar.AbsolutePosition.X) / sliderBar.AbsoluteSize.X, 0, 1)
-        sliderHandle.Position = UDim2.new(relX, -10, sliderHandle.Position.Y.Scale, sliderHandle.Position.Y.Offset)
-        tweenSpeed = math.floor(50 + (relX * 300))
-        speedLabel.Text = "Tween Speed: " .. tostring(tweenSpeed)
-    end
-end)
-
--- Deep Map Filter targeting standard currency chests while omitting Rengoku items
-local function getAllChests()
-    local chests = {}
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("Model") and string.find(string.lower(obj.Name), "chest") then
-            
-            -- Validation check to verify this isn't a weapon or quest box container
-            local nameLower = string.lower(obj.Name)
-            local parentNameLower = obj.Parent and string.lower(obj.Parent.Name) or ""
-            
-            local isRengoku = string.find(nameLower, "rengoku") or 
-                              string.find(parentNameLower, "rengoku") or 
-                              string.find(nameLower, "sword")
-                              
-            if not isRengoku then
-                local part = obj.PrimaryPart or obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChildWhichIsA("BasePart")
-                if part then
-                    table.insert(chests, {instance = obj, part = part})
-                end
-            end
-        end
-    end
-    return chests
 end
 
-local function getClosestChest()
-    local list = getAllChests()
-    local closest = nil
-    local shortestDist = math.huge
-    
-    for _, item in ipairs(list) do
-        if item.part and item.part.Parent then -- confirm it still exists in workspace
-            local dist = (rootPart.Position - item.part.Position).Magnitude
-            if dist < shortestDist then
-                shortestDist = dist
-                closest = item.part
-            end
-        end
+-- Example UI Integration Hooks
+-- (Replace these with the actual event listeners of your UI framework)
+
+local function onToggleChanged(newState)
+    isToggled = newState
+    if isToggled then
+        -- Run the loop in a separate thread so it doesn't freeze the script
+        task.spawn(teleportToChests)
     end
-    return closest
 end
 
--- Toggle behavior logic
-toggleBtn.MouseButton1Click:Connect(function()
-    toggled = not toggled
-    if toggled then
-        toggleBtn.Text = "Chest Farm: ON"
-        toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+local function onSliderChanged(newValue)
+    -- Ensure the speed doesn't drop to 0 to prevent a division-by-zero error
+    if newValue <= 0 then
+        tweenSpeed = 1
     else
-        toggleBtn.Text = "Chest Farm: OFF"
-        toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        if currentTween then
-            currentTween:Cancel()
-        end
+        tweenSpeed = newValue
     end
-end)
-
--- Tweening loop core execution 
-task.spawn(function()
-    while true do
-        task.wait(0.2)
-        if toggled and rootPart then
-            local targetPart = getClosestChest()
-            
-            if targetPart then
-                local dist = (rootPart.Position - targetPart.Position).Magnitude
-                local timeTaken = dist / tweenSpeed
-                
-                local info = TweenInfo.new(timeTaken, Enum.EasingStyle.Linear)
-                currentTween = TweenService:Create(rootPart, info, {CFrame = targetPart.CFrame})
-                currentTween:Play()
-                
-                local finished = false
-                local connection
-                connection = currentTween.Completed:Connect(function()
-                    finished = true
-                    connection:Disconnect()
-                end)
-                
-                -- Wait tracking loop that can handle dynamic speed updates
-                while not finished and toggled do
-                    if targetPart and targetPart.Parent then
-                        -- Check if we are close enough to loot it instantly
-                        local currentDist = (rootPart.Position - targetPart.Position).Magnitude
-                        if currentDist < 3 then
-                            finished = true
-                            currentTween:Cancel()
-                        end
-                    else
-                        -- If another script/player takes the chest mid-flight, stop wasting time
-                        finished = true
-                        currentTween:Cancel()
-                    end
-                    task.wait()
-                end
-            end
-        end
-    end
-end)
+end
 
 -- local P,LP,TS,VU,UIS,RS=game:GetService("Players"),game.Players.LocalPlayer,game:GetService("TweenService"),game:GetService("VirtualUser"),game:GetService("UserInputService"),game:GetService("ReplicatedStorage")local CF=RS:WaitForChild("Remotes"):WaitForChild("CommF_")local PG=LP:WaitForChild("PlayerGui")if PG:FindFirstChild("CoolHubMobileSystem")then PG.CoolHubMobileSystem:Destroy()end
 -- _G.AutoFarm,_G.WeaponSelect,_G.AutoRoll,_G.AutoStore,_G.TweenToFruits,_G.WalkOnWater,_G.AutoGetStyle,_G.AutoGetSword,_G.AutoGetGun,_G.TweenSpeed,_G.KillHub=false,"Melee",false,false,false,true,false,false,false,250,false _G.ChosenStyle,_G.ChosenSword,_G.ChosenGun="Dark Step","Katana","Musket"
